@@ -5,9 +5,9 @@ package au.com.wsit.mailserverfinder;
  */
 public final class MailServerDB
 {
-    public static final String BigPond = "mail.bigpond.com";
-    public static final String Exetel = "smtp.wa.exemail.com.au";
 
-    public static final String[] HOSTNAME_KEYS = {"remote", "imap", "smtp"};
+    public static final String[] HOSTNAME_KEYS = {"remote", "imap", "smtp", "mail", "web", "pop", "pop3", "mail1", "mail2"};
+
+    public static final String[] TCP_PORT_KEYS = {"IMAP_PLAIN", "IMAP_SSL", "POP3_PLAIN", "POP3_SSL", "SMTP_PLAIN", "SMTP_TLS", "SMTP_SSL", "EXCHANGE"};
 
 }

@@ -1,5 +1,6 @@
 package au.com.wsit.mailserverfinder;
 
+import android.content.Intent;
 import android.opengl.Visibility;
 import android.os.AsyncTask;
 import android.os.Environment;
@@ -14,7 +15,10 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 
 
@@ -29,6 +33,10 @@ public class MainActivity extends ActionBarActivity {
     public String EmailAddress;
     public String searchDomain;
     public String mDomain;
+    public Intent resultsIntent;
+
+    // Stores a counter so we know if we found any hostnames
+    public int domainFoundCount = 0;
 
 
 
@@ -50,45 +58,43 @@ public class MainActivity extends ActionBarActivity {
         // Listen for button clicks
         mSearchButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v)
-            {
-            // Show the search bar
-            mSearchProgress.setVisibility(View.VISIBLE);
-            // Get the email address
-            EmailAddress = getEmail();
-            // Show some info about what we are doing
-            Toast.makeText(MainActivity.this, getString(R.string.SearchingSettings) + EmailAddress, Toast.LENGTH_LONG).show();
+            public void onClick(View v) {
 
-            // Check if domain or email
-            if(DomainTrue())
-            {
-                // It's a domain
-                mDomain = EmailAddress;
-                // Proceed with checking network and server settings
-                new HostCheckIMAP().execute(mDomain);
+                // Get the email address
+                EmailAddress = getEmail();
 
+                if (EmailAddress.equals("")) {
+                    Toast.makeText(MainActivity.this, "Enter an email or domain", Toast.LENGTH_LONG).show();
+                } else {
+                    // Show the search bar
+                    mSearchProgress.setVisibility(View.VISIBLE);
+                    // Show some info about what we are doing
+                    Toast.makeText(MainActivity.this, getString(R.string.SearchingSettings) + EmailAddress, Toast.LENGTH_LONG).show();
+
+                    // Check if domain or email
+                    if (DomainTrue()) {
+                        // It's a domain
+                        mDomain = EmailAddress;
+                        // Proceed with checking network and server settings
+                        new HostCheckIMAP().execute(mDomain);
+
+                    } else if (DomainTrue() == false) {
+                        // Need to extract domain first
+                        mDomain = extractDomain();
+
+                        // Proceed with checking network and server settings
+                        new HostCheckIMAP().execute(mDomain);
+
+                    } else {
+                        // Error
+                        Log.i(TAG, getString(R.string.Generic_Error));
+                    }
+
+
+                }
             }
-            else if (DomainTrue() == false)
-            {
-                // Need to extract domain first
-                mDomain = extractDomain();
-                // Proceed with checking network and server settings
-                new HostCheckIMAP().execute(mDomain);
-
-            }
-            else
-            {
-                // Error
-                Log.i(TAG, getString(R.string.Generic_Error));
-            }
-
-
-
-            }
-        });
-
+        }); // End of onClick
     }
-
 
 
     // Extract the domain part of an email
@@ -100,6 +106,7 @@ public class MainActivity extends ActionBarActivity {
         Log.i(TAG, "The @ Symbol is at: " + IndexVal);
         searchDomain = EmailAddress.substring(IndexVal + 1, EmailAddress.length());
         Log.i(TAG, "The domain is: " + searchDomain);
+
         return searchDomain;
 
 
@@ -124,8 +131,8 @@ public class MainActivity extends ActionBarActivity {
     public String getEmail()
     {
 
-        // Get the data from the EditText
         return mEmailAddress.getText().toString().trim();
+
     }
 
 
@@ -140,24 +147,40 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected String doInBackground(String... params)
         {
+            // Get an instance of the intent so we can add "Extras" to it
+            resultsIntent = new Intent(MainActivity.this, Results.class);
 
-            try
-            {
+            resultsIntent.putExtra("DOMAIN", mDomain);
                 for (String hostname : MailServerDB.HOSTNAME_KEYS)
                 {
-                    Log.i(TAG, "Checking for: " + hostname + "." +params[0]);
-                    // Add the hostname to the domain (hostname + domain)
-                    InetAddress address = InetAddress.getByName(hostname + "." + params[0]);
-                    IPAddr = address.getHostAddress();
+                    try
+                    {
+                        String fullHostName = hostname + "." +params[0];
+
+                        Log.i(TAG, "Checking resolution of: " + hostname + "." +params[0]);
+                        // Add the hostname to the domain (hostname + domain)
+                        InetAddress address = InetAddress.getByName(hostname + "." + params[0]);
+                        IPAddr = address.getHostAddress();
+
+                        // Add host to Intent
+                        Log.i(TAG, "Adding " + hostname + "." + params[0] + " to intent");
+                        resultsIntent.putExtra(hostname, hostname + "." + params[0]);
+                        domainFoundCount = domainFoundCount + 1;
+
+                        // Check server protocols // IMAP and POP3 etc..
+                        CheckServerProtocol(fullHostName);
+
+
+                    }
+                    catch (UnknownHostException e)
+                    {
+                        Log.i(TAG, "Unable to resolve host: " + hostname + "." + params[0]);
+                    }
+
+
 
                 }
 
-            }
-            catch(UnknownHostException e)
-            {
-                Log.i(TAG, "Host not found");
-                return null;
-            }
 
             return null;
         }
@@ -174,8 +197,94 @@ public class MainActivity extends ActionBarActivity {
                 Log.i(TAG, "We found an server at" + hostname);
             }
 
+            // Once we are done - hide the progress bar
+            mSearchProgress.setVisibility(View.INVISIBLE);
+
+            if (domainFoundCount == 0)
+            {
+                Toast.makeText(MainActivity.this, "Unable to find server settings", Toast.LENGTH_LONG).show();
+            }
+            else
+            {
+                // Start the result activity
+                startActivity(resultsIntent);
+            }
+
+
 
         }
+    }
+
+    // Check if IMAP // Exchange // POP3 // TLS // SSL
+    public void CheckServerProtocol(String hostname)
+    {
+        // Check IMAP PLAIN
+        if (CheckTCPport(hostname, 143))
+        {
+            resultsIntent.putExtra("IMAP_PLAIN", 143);
+        }
+        // Check IMAP SSL
+        if (CheckTCPport(hostname, 993))
+        {
+            resultsIntent.putExtra("IMAP_SSL", 993);
+        }
+        // Check POP3 PLAIN
+        if (CheckTCPport(hostname, 110))
+        {
+            resultsIntent.putExtra("POP3_PLAIN", 110);
+        }
+        // Check POP3 SSL
+        if (CheckTCPport(hostname, 995))
+        {
+            resultsIntent.putExtra("POP3_SSL", 110);
+        }
+        // Check SMTP PLAIN 25
+        if (CheckTCPport(hostname, 25))
+        {
+            resultsIntent.putExtra("SMTP_PLAIN", 25);
+        }
+        // Check SMTP TLS
+        if (CheckTCPport(hostname, 587))
+        {
+            resultsIntent.putExtra("SMTP_TLS", 587);
+        }
+        // SMTP SSL
+        if (CheckTCPport(hostname, 465))
+        {
+            resultsIntent.putExtra("SMTP_SSL", 465);
+        }
+        if (CheckTCPport(hostname, 443))
+        {
+            resultsIntent.putExtra("EXCHANGE", 443);
+        }
+    }
+
+
+    // Checks if the TCP port is open or not
+    public boolean CheckTCPport(String hostname, int port)
+    {
+        Socket portCheck = new Socket();
+        int CONNECT_TIMEOUT = 1000;
+
+        try
+        {
+
+            portCheck.connect(new InetSocketAddress(hostname, port), CONNECT_TIMEOUT);
+
+            portCheck.close();
+            Log.i(TAG, hostname + ":" + port + " is open");
+
+            return true;
+        }
+        catch(IOException e)
+        {
+            Log.i(TAG, hostname + ":" + port + " is closed");
+            return false;
+        }
+
+
+
+
     }
 
 
@@ -223,5 +332,13 @@ public class MainActivity extends ActionBarActivity {
     private void StopSearching()
     {
         mSearchProgress.setVisibility(View.INVISIBLE);
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // On resume set the domain found count back to zero
+        domainFoundCount = 0;
     }
 }
