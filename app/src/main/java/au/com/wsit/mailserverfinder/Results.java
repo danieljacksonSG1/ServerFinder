@@ -2,33 +2,43 @@ package au.com.wsit.mailserverfinder;
 
 import android.content.Intent;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.ActionBar;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.app.FragmentPagerAdapter;
 import android.os.Bundle;
+import android.support.v4.view.ViewPager;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.TextView;
+import android.view.View;
+import android.view.ViewGroup;
 
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 
-public class Results extends ActionBarActivity {
+public class Results extends ActionBarActivity implements ActionBar.TabListener {
 
     public static final String TAG = Results.class.getSimpleName();
 
-    // Type of server
-    TextView IMAP_TYPE;
-    TextView POP3_TYPE;
-    TextView EXCHANGE_TYPE;
+    /**
+     * The {@link android.support.v4.view.PagerAdapter} that will provide
+     * fragments for each of the sections. We use a
+     * {@link FragmentPagerAdapter} derivative, which will keep every
+     * loaded fragment in memory. If this becomes too memory intensive, it
+     * may be best to switch to a
+     * {@link android.support.v4.app.FragmentStatePagerAdapter}.
+     */
+    SectionsPagerAdapter mSectionsPagerAdapter;
 
-    // hostnames
-    TextView incomingHostname;
-    TextView outgoingHostname;
+    /**
+     * The {@link ViewPager} that will host the section contents.
+     */
+    ViewPager mViewPager;
 
-
-    TextView mIncomingPorts;
-
-    TextView mSMTP_TLS, mSMTP_SSL, mSMTP_PLAIN;
-
+    // Create the intent from Main
     Intent MainActivityIntent;
 
     @Override
@@ -36,107 +46,66 @@ public class Results extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_results);
 
-        // Type
-        IMAP_TYPE = (TextView) findViewById(R.id.imap_TV);
-        POP3_TYPE = (TextView) findViewById(R.id.pop3_TV);
-        EXCHANGE_TYPE = (TextView) findViewById(R.id.exchange_TV);
+        // Set up the action bar.
+        final ActionBar actionBar = getSupportActionBar();
+        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 
-        // Hostnames
-        incomingHostname = (TextView) findViewById(R.id.incomingServerNameInput);
-        outgoingHostname = (TextView) findViewById(R.id.outgoingServerNameInput);
+        // Create the adapter that will return a fragment for each of the three
+        // primary sections of the activity.
+        mSectionsPagerAdapter = new SectionsPagerAdapter(this ,getSupportFragmentManager());
 
-        // Incoming
-        mIncomingPorts = (TextView) findViewById(R.id.incomingPorts);
+        // Set up the ViewPager with the sections adapter.
+        mViewPager = (ViewPager) findViewById(R.id.pager);
+        mViewPager.setAdapter(mSectionsPagerAdapter);
 
+        // When swiping between different sections, select the corresponding
+        // tab. We can also use ActionBar.Tab#select() to do this if we have
+        // a reference to the Tab.
+        mViewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                actionBar.setSelectedNavigationItem(position);
+            }
+        });
 
-
-        // Outgoing
-        mSMTP_PLAIN = (TextView) findViewById(R.id.SMTP_PLAIN);
-        mSMTP_TLS = (TextView) findViewById(R.id.SMTP_TLS_ID);
-        mSMTP_SSL = (TextView) findViewById(R.id.SMTP_SSL_ID);
+        // For each of the sections in the app, add a tab to the action bar.
+        for (int i = 0; i < mSectionsPagerAdapter.getCount(); i++) {
+            // Create a tab with text corresponding to the page title defined by
+            // the adapter. Also specify this Activity object, which implements
+            // the TabListener interface, as the callback (listener) for when
+            // this tab is selected.
+            actionBar.addTab(
+                    actionBar.newTab()
+                            .setText(mSectionsPagerAdapter.getPageTitle(i))
+                            .setTabListener(this));
+        }
 
 
         MainActivityIntent = getIntent();
+        String domain = MainActivityIntent.getStringExtra("DOMAIN");
+        Log.i(TAG, "Our domain is: " + domain);
 
-        Bundle Values = MainActivityIntent.getExtras();
+        // Cast the serializable Intent extra to a hashmap
+        ArrayList<String> hostPortsMapping = (ArrayList<String>)MainActivityIntent.getSerializableExtra("FQDN_PORT_MAPPING");
 
-        Object IMAP_SSL = Values.get("IMAP_SSL");
-        Object IMAP_PLAIN = Values.get("IMAP_PLAIN");
-        Object SMTP_PLAIN = Values.get("SMTP_PLAIN");
-        Object POP3_PLAIN = Values.get("POP3_PLAIN");
-        Object POP3_SSL = Values.get("POP3_SSL");
-        Object SMTP_TLS = Values.get("SMTP_TLS");
-        Object SMTP_SSL = Values.get("SMTP_SSL");
-        Object EXCHANGE = Values.get("EXCHANGE");
-
-        // Hostnames
-        Object INCOMING_HOSTNAME_IMAP = Values.get("imap");
-        Object INCOMING_HOSTNAME_POP3 = Values.get("pop3");
-        Object INCOMING_OR_OUTGOING_HOSTNAME_MAIL = Values.get("mail");
-        Object OUTGOING_HOSTNAME_SMTP = Values.get("smtp");
-        Object INCOMING_HOSTNAME_REMOTE = Values.get("remote");
-        Object DOMAIN = Values.get("DOMAIN");
-
-        // We are using both if this true
-        if (IMAP_SSL != null && IMAP_PLAIN != null)
+        for (int i = 0; i < hostPortsMapping.size(); i++)
         {
-            IMAP_TYPE.setText("IMAP");
-            mIncomingPorts.setText("tcp/993 OR tcp/143");
-
-        }
-        // Just plain
-        else if (IMAP_PLAIN != null && IMAP_SSL == null)
-        {
-            IMAP_TYPE.setText("IMAP");
-            mIncomingPorts.setText("tcp/143");
-        }
-        if(POP3_SSL != null)
-        {
-            POP3_TYPE.setText("POP3");
-        }
-        if (POP3_PLAIN != null)
-        {
-            POP3_TYPE.setText("POP3");
-        }
-        if (EXCHANGE != null)
-        {
-            EXCHANGE_TYPE.setText("Exchange");
-        }
-        if (SMTP_PLAIN != null)
-        {
-            mSMTP_PLAIN.setText("tcp/25");
-        }
-        if (SMTP_SSL != null)
-        {
-            mSMTP_SSL.setText("tcp/465");
-        }
-        if (SMTP_TLS != null)
-        {
-            mSMTP_TLS.setText("tcp/587");
+            Log.i(TAG, "RESULTS: " + hostPortsMapping.get(i));
         }
 
 
-        // Get the hostnames
-        if (INCOMING_HOSTNAME_IMAP != null)
-        {
-            incomingHostname.setText("imap." + DOMAIN.toString());
-        }
-        if (OUTGOING_HOSTNAME_SMTP != null)
-        {
-            outgoingHostname.setText("smtp." + DOMAIN.toString());
-        }
-        else if (INCOMING_OR_OUTGOING_HOSTNAME_MAIL != null)
-        {
-            incomingHostname.setText("mail." + DOMAIN.toString());
-            outgoingHostname.setText("mail." + DOMAIN.toString());
-        }
-        else if (INCOMING_HOSTNAME_REMOTE != null)
-        {
-            incomingHostname.setText("remote." + DOMAIN.toString());
-            outgoingHostname.setText("mail." + DOMAIN.toString());
-        }
+
+    }
 
 
+    public String CheckType()
+    {
+        return null;
+    }
+
+    public int getPort()
+    {
+        return 0;
     }
 
 
@@ -167,4 +136,58 @@ public class Results extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    @Override
+    public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
+        // When the given tab is selected, switch to the corresponding page in
+        // the ViewPager.
+        mViewPager.setCurrentItem(tab.getPosition());
+    }
+
+    @Override
+    public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
+    }
+
+    @Override
+    public void onTabReselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
+    }
+
+    /**
+     * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
+     * one of the sections/tabs/pages.
+     */
+
+    /**
+     * A placeholder fragment containing a simple view.
+     */
+    public static class PlaceholderFragment extends Fragment {
+        /**
+         * The fragment argument representing the section number for this
+         * fragment.
+         */
+        private static final String ARG_SECTION_NUMBER = "section_number";
+
+        /**
+         * Returns a new instance of this fragment for the given section
+         * number.
+         */
+        public static PlaceholderFragment newInstance(int sectionNumber) {
+            PlaceholderFragment fragment = new PlaceholderFragment();
+            Bundle args = new Bundle();
+            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
+            fragment.setArguments(args);
+            return fragment;
+        }
+
+        public PlaceholderFragment() {
+        }
+
+        @Override
+        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                                 Bundle savedInstanceState) {
+            View rootView = inflater.inflate(R.layout.fragment_pop_results, container, false);
+            return rootView;
+        }
+    }
+
 }

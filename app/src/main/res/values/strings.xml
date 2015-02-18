@@ -20,5 +20,19 @@
     <string name="StopSearching">Stop Searching</string>
     <string name="SearchingSettings">"Searching settings for: "</string>
     <string name="Generic_Error">Error</string>
+    <string name="title_section1">Section 1</string>
+    <string name="title_section2">Section 2</string>
+    <string name="title_section3">Section 3</string>
+    <string name="POP3">POP3</string>
+    <string name="ExchangeSettings">Exchange</string>
+    <string name="IMAPSettings">IMAP</string>
+    <string name="POPSettings">POP</string>
+    <string name="SMTPSettings">SMTP</string>
+    <string name="POP3ServerSettings">POP3 Server Settings</string>
+    <string name="AvailableTCPports">Available TCP Ports</string>
+    <string name="SMTPServerSettings">SMTPServerSettings</string>
+    <string name="IMAPServerSettings">IMAPServerSettings</string>
+    <string name="ExchangeServerSettings">ExchangeServerSettings</string>
+    <string name="ExchangeServerName">ExchangeServerName</string>
 
 </resources>

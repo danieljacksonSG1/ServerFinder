@@ -20,6 +20,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -35,8 +37,21 @@ public class MainActivity extends ActionBarActivity {
     public String mDomain;
     public Intent resultsIntent;
 
+    public final String KEY_HOSTNAME = "hostname";
+    public final String KEY_TCP_PORT = "tcpPort";
+
+    // To store hostnames and ports
+    HashMap<String, ArrayList<Integer>> hostPortsHashMap;
+
     // Stores a counter so we know if we found any hostnames
     public int domainFoundCount = 0;
+
+    // Stores results
+    ArrayList<String> HostResults = new ArrayList<String>();
+
+
+    // String array that stores hostnames that were able to be resolved
+    String[] resolvedHosts;
 
 
 
@@ -63,9 +78,12 @@ public class MainActivity extends ActionBarActivity {
                 // Get the email address
                 EmailAddress = getEmail();
 
-                if (EmailAddress.equals("")) {
+                if (EmailAddress.equals(""))
+                {
                     Toast.makeText(MainActivity.this, "Enter an email or domain", Toast.LENGTH_LONG).show();
-                } else {
+                }
+                else
+                {
                     // Show the search bar
                     mSearchProgress.setVisibility(View.VISIBLE);
                     // Show some info about what we are doing
@@ -147,39 +165,32 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected String doInBackground(String... params)
         {
-            // Get an instance of the intent so we can add "Extras" to it
-            resultsIntent = new Intent(MainActivity.this, Results.class);
 
-            resultsIntent.putExtra("DOMAIN", mDomain);
+                // for each hostname in the array
+            ArrayList<HashMap<String, String>> hostPorts = new ArrayList<HashMap<String, String>>();
+
                 for (String hostname : MailServerDB.HOSTNAME_KEYS)
                 {
-                    try
-                    {
-                        String fullHostName = hostname + "." +params[0];
-
-                        Log.i(TAG, "Checking resolution of: " + hostname + "." +params[0]);
-                        // Add the hostname to the domain (hostname + domain)
-                        InetAddress address = InetAddress.getByName(hostname + "." + params[0]);
-                        IPAddr = address.getHostAddress();
-
-                        // Add host to Intent
-                        Log.i(TAG, "Adding " + hostname + "." + params[0] + " to intent");
-                        resultsIntent.putExtra(hostname, hostname + "." + params[0]);
-                        domainFoundCount = domainFoundCount + 1;
-
-                        // Check server protocols // IMAP and POP3 etc..
-                        CheckServerProtocol(fullHostName);
 
 
-                    }
-                    catch (UnknownHostException e)
-                    {
-                        Log.i(TAG, "Unable to resolve host: " + hostname + "." + params[0]);
-                    }
+                    String fqdn = hostname + "." +params[0];
+
+                        // Check if the host exists
+                        if(checkHostExists(fqdn))
+                        {
+                            // Checks the ports and adds data to the ArrayList
+                            checkServerPorts(fqdn);
+                            // Increment the domain found count
+                            domainFoundCount = domainFoundCount + 1;
+
+                            // For that host, Check what ports are open
 
 
+                        }
 
-                }
+
+                 }
+
 
 
             return null;
@@ -188,14 +199,6 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected void onPostExecute(String hostname) {
             super.onPostExecute(hostname);
-            if (hostname == null)
-            {
-                Log.i(TAG, "Host not found");
-            }
-            else
-            {
-                Log.i(TAG, "We found an server at" + hostname);
-            }
 
             // Once we are done - hide the progress bar
             mSearchProgress.setVisibility(View.INVISIBLE);
@@ -206,6 +209,16 @@ public class MainActivity extends ActionBarActivity {
             }
             else
             {
+                // Get an instance of the intent so we can add "Extras" to it
+                resultsIntent = new Intent(MainActivity.this, Results.class);
+
+                // Add the domains we found and ports to the intent
+                resultsIntent.putExtra("FQDN_PORT_MAPPING", HostResults);
+
+
+                // Add our domain
+                resultsIntent.putExtra("DOMAIN", mDomain);
+
                 // Start the result activity
                 startActivity(resultsIntent);
             }
@@ -215,48 +228,46 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    // Check if IMAP // Exchange // POP3 // TLS // SSL
-    public void CheckServerProtocol(String hostname)
+    // Check if hostname exists - returns true if we were able to resolve
+    public boolean checkHostExists(String fqdn)
     {
-        // Check IMAP PLAIN
-        if (CheckTCPport(hostname, 143))
+        String IPAddress;
+        try
         {
-            resultsIntent.putExtra("IMAP_PLAIN", 143);
+            InetAddress address = InetAddress.getByName(fqdn);
+            IPAddress = address.getHostAddress();
+            Log.i(TAG, fqdn + " Resolves to: " + IPAddress);
+            return true;
         }
-        // Check IMAP SSL
-        if (CheckTCPport(hostname, 993))
+        catch(UnknownHostException e)
         {
-            resultsIntent.putExtra("IMAP_SSL", 993);
+            Log.i(TAG, "Unable to resolve: " + fqdn);
+            return false;
         }
-        // Check POP3 PLAIN
-        if (CheckTCPport(hostname, 110))
+
+    }
+
+    // Returns an array of tcp ports that are open on the host
+    public ArrayList checkServerPorts(String fqdn)
+    {
+        // Array that stores the ports that were open on the host
+        ArrayList<Integer> openPorts = new ArrayList<Integer>();
+
+        int count = 0;
+
+        // Cycle through the array of mail server ports
+        for (int tcp_port : MailServerDB.TCP_PORTS)
         {
-            resultsIntent.putExtra("POP3_PLAIN", 110);
+            // If the port is open then it's true so add the port to the return array
+            if (CheckTCPport(fqdn, tcp_port))
+            {
+
+                HostResults.add(fqdn + ":" + tcp_port);
+
+            }
         }
-        // Check POP3 SSL
-        if (CheckTCPport(hostname, 995))
-        {
-            resultsIntent.putExtra("POP3_SSL", 110);
-        }
-        // Check SMTP PLAIN 25
-        if (CheckTCPport(hostname, 25))
-        {
-            resultsIntent.putExtra("SMTP_PLAIN", 25);
-        }
-        // Check SMTP TLS
-        if (CheckTCPport(hostname, 587))
-        {
-            resultsIntent.putExtra("SMTP_TLS", 587);
-        }
-        // SMTP SSL
-        if (CheckTCPport(hostname, 465))
-        {
-            resultsIntent.putExtra("SMTP_SSL", 465);
-        }
-        if (CheckTCPport(hostname, 443))
-        {
-            resultsIntent.putExtra("EXCHANGE", 443);
-        }
+
+        return openPorts;
     }
 
 

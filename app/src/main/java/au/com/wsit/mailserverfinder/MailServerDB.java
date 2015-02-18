@@ -10,4 +10,8 @@ public final class MailServerDB
 
     public static final String[] TCP_PORT_KEYS = {"IMAP_PLAIN", "IMAP_SSL", "POP3_PLAIN", "POP3_SSL", "SMTP_PLAIN", "SMTP_TLS", "SMTP_SSL", "EXCHANGE"};
 
+    public static final int[] TCP_PORTS = {25, 110, 143, 465, 587, 993, 995, 443};
+
+
+
 }
