@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Mail Server Finder</string>
+    <string name="app_name">Mail Finder</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="EmailDomainHint">Enter your email or domain</string>
@@ -34,5 +34,8 @@
     <string name="IMAPServerSettings">IMAPServerSettings</string>
     <string name="ExchangeServerSettings">ExchangeServerSettings</string>
     <string name="ExchangeServerName">ExchangeServerName</string>
+    <string name="MailSettingsFinder">Mail Settings Finder</string>
+    <string name="AboutAlertDialogTitle">About</string>
+    <string name="MessageAbout">This App helps you find your email server settings for your email</string>
 
 </resources>

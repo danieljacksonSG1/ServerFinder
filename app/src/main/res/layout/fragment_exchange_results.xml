@@ -30,7 +30,7 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="@string/dots"
-        android:id="@+id/incomingServerNameID"
+        android:id="@+id/exchangeServerNameID"
         android:layout_gravity="center_horizontal"/>
 
 

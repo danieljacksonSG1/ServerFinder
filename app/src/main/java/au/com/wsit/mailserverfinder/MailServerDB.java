@@ -12,6 +12,8 @@ public final class MailServerDB
 
     public static final int[] TCP_PORTS = {25, 110, 143, 465, 587, 993, 995, 443};
 
+    public static final int CONNECT_TIMEOUT = 2000;
+
 
 
 }

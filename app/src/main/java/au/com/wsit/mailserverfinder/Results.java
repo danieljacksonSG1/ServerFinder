@@ -38,8 +38,7 @@ public class Results extends ActionBarActivity implements ActionBar.TabListener 
      */
     ViewPager mViewPager;
 
-    // Create the intent from Main
-    Intent MainActivityIntent;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,33 +80,10 @@ public class Results extends ActionBarActivity implements ActionBar.TabListener 
         }
 
 
-        MainActivityIntent = getIntent();
-        String domain = MainActivityIntent.getStringExtra("DOMAIN");
-        Log.i(TAG, "Our domain is: " + domain);
-
-        // Cast the serializable Intent extra to a hashmap
-        ArrayList<String> hostPortsMapping = (ArrayList<String>)MainActivityIntent.getSerializableExtra("FQDN_PORT_MAPPING");
-
-        for (int i = 0; i < hostPortsMapping.size(); i++)
-        {
-            Log.i(TAG, "RESULTS: " + hostPortsMapping.get(i));
-        }
 
 
 
     }
-
-
-    public String CheckType()
-    {
-        return null;
-    }
-
-    public int getPort()
-    {
-        return 0;
-    }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

@@ -1,5 +1,6 @@
 package au.com.wsit.mailserverfinder;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.opengl.Visibility;
 import android.os.AsyncTask;
@@ -275,12 +276,12 @@ public class MainActivity extends ActionBarActivity {
     public boolean CheckTCPport(String hostname, int port)
     {
         Socket portCheck = new Socket();
-        int CONNECT_TIMEOUT = 1000;
+
 
         try
         {
 
-            portCheck.connect(new InetSocketAddress(hostname, port), CONNECT_TIMEOUT);
+            portCheck.connect(new InetSocketAddress(hostname, port), MailServerDB.CONNECT_TIMEOUT );
 
             portCheck.close();
             Log.i(TAG, hostname + ":" + port + " is open");
@@ -319,6 +320,7 @@ public class MainActivity extends ActionBarActivity {
             case R.id.action_stop:
                 // Cancel the search
                 StopSearching();
+                finish();
                 break;
             case R.id.action_settings:
                 // Go to settings
@@ -328,6 +330,13 @@ public class MainActivity extends ActionBarActivity {
                 break;
             case R.id.action_about:
                 // Go to about
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle(getString(R.string.AboutAlertDialogTitle));
+                builder.setMessage(getString(R.string.MessageAbout));
+                builder.setPositiveButton(android.R.string.ok, null);
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
                 break;
             case R.id.action_exit:
                 // Go to exit
