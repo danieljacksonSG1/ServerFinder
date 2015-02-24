@@ -2,9 +2,7 @@ package au.com.wsit.mailserverfinder;
 
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.opengl.Visibility;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -37,6 +35,8 @@ public class MainActivity extends ActionBarActivity {
     public String searchDomain;
     public String mDomain;
     public Intent resultsIntent;
+
+    public String exchangServerURL;
 
     public final String KEY_HOSTNAME = "hostname";
     public final String KEY_TCP_PORT = "tcpPort";
@@ -79,6 +79,7 @@ public class MainActivity extends ActionBarActivity {
                 // Get the email address
                 EmailAddress = getEmail();
 
+                // Check if we entered nothing
                 if (EmailAddress.equals(""))
                 {
                     Toast.makeText(MainActivity.this, "Enter an email or domain", Toast.LENGTH_LONG).show();
@@ -95,18 +96,24 @@ public class MainActivity extends ActionBarActivity {
                         // It's a domain
                         mDomain = EmailAddress;
                         // Proceed with checking network and server settings
-                        new HostCheckIMAP().execute(mDomain);
+                        new HostCheck().execute(mDomain);
 
-                    } else if (DomainTrue() == false) {
+                    }
+                    // If it's not a domain the user entered then extract the domain from the email address
+                    else if (!DomainTrue())
+                    {
                         // Need to extract domain first
                         mDomain = extractDomain();
 
                         // Proceed with checking network and server settings
-                        new HostCheckIMAP().execute(mDomain);
+                        new HostCheck().execute(mDomain);
 
-                    } else {
+                    }
+                    else
+                    {
                         // Error
                         Log.i(TAG, getString(R.string.Generic_Error));
+
                     }
 
 
@@ -157,42 +164,44 @@ public class MainActivity extends ActionBarActivity {
 
 // * * *  AsyncTask * * *
 
-    private class HostCheckIMAP extends AsyncTask<String, Void, String>
+    private class HostCheck extends AsyncTask<String, Void, String>
     {
-
-        public String IPAddr;
-
 
         @Override
         protected String doInBackground(String... params)
         {
 
-                // for each hostname in the array
-            ArrayList<HashMap<String, String>> hostPorts = new ArrayList<HashMap<String, String>>();
-
+                // for hostnames in the array do...
                 for (String hostname : MailServerDB.HOSTNAME_KEYS)
                 {
 
-
+                    // Concatenate the domain with the string array instance
                     String fqdn = hostname + "." +params[0];
 
                         // Check if the host exists
                         if(checkHostExists(fqdn))
                         {
+                            // For the host, Check what ports are open
                             // Checks the ports and adds data to the ArrayList
                             checkServerPorts(fqdn);
                             // Increment the domain found count
                             domainFoundCount = domainFoundCount + 1;
 
-                            // For that host, Check what ports are open
 
+                            // Also check each URL for exchange services
+                            Exchange exchange = new Exchange();
+                            int respCode = exchange.getURL(fqdn);
+                            if (respCode == 200)
+                            {
+                                Log.i(TAG, "FOUND AN EXCHANGE SERVER at: " + "http://" + fqdn + "/owa");
+                                exchangServerURL = "http://" + fqdn + "/owa";
+
+
+                            }
 
                         }
 
-
                  }
-
-
 
             return null;
         }
@@ -219,6 +228,9 @@ public class MainActivity extends ActionBarActivity {
 
                 // Add our domain
                 resultsIntent.putExtra("DOMAIN", mDomain);
+
+                // Add the exchange server URL
+                resultsIntent.putExtra("EXCHANGE_SERVER_URL", exchangServerURL);
 
                 // Start the result activity
                 startActivity(resultsIntent);
@@ -254,7 +266,6 @@ public class MainActivity extends ActionBarActivity {
         // Array that stores the ports that were open on the host
         ArrayList<Integer> openPorts = new ArrayList<Integer>();
 
-        int count = 0;
 
         // Cycle through the array of mail server ports
         for (int tcp_port : MailServerDB.TCP_PORTS)
@@ -320,7 +331,7 @@ public class MainActivity extends ActionBarActivity {
             case R.id.action_stop:
                 // Cancel the search
                 StopSearching();
-                finish();
+
                 break;
             case R.id.action_settings:
                 // Go to settings
@@ -352,6 +363,7 @@ public class MainActivity extends ActionBarActivity {
     private void StopSearching()
     {
         mSearchProgress.setVisibility(View.INVISIBLE);
+        finish();
     }
 
 

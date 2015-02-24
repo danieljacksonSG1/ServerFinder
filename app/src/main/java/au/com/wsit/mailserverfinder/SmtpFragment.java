@@ -20,6 +20,8 @@ public class SmtpFragment extends Fragment{
     TextView mIncomingServerName;
     TextView mTCPports;
 
+    ArrayList<String> hostPortsMapping;
+
     int SMTP_PLAIN_COUNT = 0;
     int SMTP_SSL_COUNT = 0;
     int SMTP_TLS_COUNT = 0;
@@ -30,23 +32,25 @@ public class SmtpFragment extends Fragment{
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_smtp_results, container, false);
 
-        mIncomingServerName = (TextView) rootView.findViewById(R.id.incomingServerNameID);
-        mTCPports = (TextView) rootView.findViewById(R.id.availableTCPPortsID);
+
+            mIncomingServerName = (TextView) rootView.findViewById(R.id.incomingServerNameID);
+            mTCPports = (TextView) rootView.findViewById(R.id.availableTCPPortsID);
 
 
-        Intent MainActivityIntent = getActivity().getIntent();
-        String domain = MainActivityIntent.getStringExtra("DOMAIN");
-        Log.i(TAG, "Our domain is: " + domain);
+            Intent MainActivityIntent = getActivity().getIntent();
+            String domain = MainActivityIntent.getStringExtra("DOMAIN");
+            Log.i(TAG, "Our domain is: " + domain);
 
-        // Cast the serializable Intent extra to a hashmap
-        ArrayList<String> hostPortsMapping = (ArrayList<String>)MainActivityIntent.getSerializableExtra("FQDN_PORT_MAPPING");
+            // Cast the serializable Intent extra to a hashmap
+            hostPortsMapping = (ArrayList<String>)MainActivityIntent.getSerializableExtra("FQDN_PORT_MAPPING");
 
-        for (int i = 0; i < hostPortsMapping.size(); i++)
-        {
-            Log.i(TAG, "RESULTS: " + hostPortsMapping.get(i));
-            CheckSMTP(hostPortsMapping.get(i));
+              for (int i = 0; i < hostPortsMapping.size(); i++)
+            {
+                Log.i(TAG, "RESULTS: " + hostPortsMapping.get(i));
+                CheckSMTP(hostPortsMapping.get(i));
 
-        }
+            }
+
 
         return rootView;
 
@@ -141,4 +145,16 @@ public class SmtpFragment extends Fragment{
         return result;
     }
 
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        this.setRetainInstance(true);
+    }
 }

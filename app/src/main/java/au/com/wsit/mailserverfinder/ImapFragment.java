@@ -51,6 +51,10 @@ public class ImapFragment extends Fragment {
 
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+    }
 
     // Pass into for loop - checks if the string has the port we want in it
     public void CheckIMAP(String result)
